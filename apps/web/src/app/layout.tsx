@@ -3,7 +3,7 @@ import './globals.css';
 import Splash from '@/components/Splash';
 
 export const metadata: Metadata = { title: 'Dip House · Lavado premium a domicilio', description: 'Lavado premium y detailing a domicilio. Agenda tu cita y paga en línea.' };
-export const viewport: Viewport = { themeColor: '#05080F', viewportFit: 'cover', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#070707', viewportFit: 'cover', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
