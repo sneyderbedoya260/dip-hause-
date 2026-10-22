@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.local
+*.db
+*.db-journal
+apps/web/public/uploads/*
+!apps/web/public/uploads/.gitkeep
+.expo
+dist
+.DS_Store
