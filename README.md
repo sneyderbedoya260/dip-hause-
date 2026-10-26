@@ -23,7 +23,7 @@ npm run dev                             # http://localhost:3000
 |---|---|---|
 | GET | `/api/v1/washes`, `/products` (+ `/:id`) | público |
 | GET | `/api/v1/availability?washId=&days=60` | público: días y horas libres |
-| POST | `/api/v1/appointments` | público: crea cita *pendiente* |
+| POST | `/api/v1/appointments` | público: crea cita *pendiente* (acepta `extraIds` de servicios adicionales) |
 | POST | `/api/v1/payments/preference` | público: devuelve `init_point` de Mercado Pago |
 | POST | `/api/v1/payments/webhook` | Mercado Pago |
 | POST | `/api/v1/admin/login` | devuelve `token` (Bearer) y cookie httpOnly |

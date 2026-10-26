@@ -4,12 +4,19 @@ export const MediaKind = z.enum(['image', 'video']);
 export const MediaInput = z.object({ url: z.string().min(1), kind: MediaKind });
 export type MediaItem = z.infer<typeof MediaInput>;
 
+export const ExtraInput = z.object({
+  name: z.string().trim().min(2),
+  description: z.string().trim().default(''),
+  priceCop: z.number().int().min(0),
+  durationMin: z.number().int().min(0).default(0),
+});
 export const WashInput = z.object({
   name: z.string().trim().min(2),
   description: z.string().trim().default(''),
   priceCop: z.number().int().positive(),
   durationMin: z.number().int().min(10),
   media: z.array(MediaInput).default([]),
+  extras: z.array(ExtraInput).default([]), // servicios adicionales (polichada, partes negras...)
 });
 export const ProductInput = z.object({
   name: z.string().trim().min(2),
@@ -30,6 +37,7 @@ export const AppointmentInput = z.object({
   address: z.string().trim().min(6),
   refs: z.string().trim().default(''),
   notes: z.string().trim().default(''),
+  extraIds: z.array(z.string()).default([]),
   paymentMethod: z.enum(['mercadopago', 'cash']).default('mercadopago'),
 });
 export const AppointmentStatus = z.enum(['pendiente', 'confirmada', 'completada', 'cancelada']);

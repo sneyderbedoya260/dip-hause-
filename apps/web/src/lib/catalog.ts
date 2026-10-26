@@ -1,6 +1,6 @@
 import { asc, desc, eq } from 'drizzle-orm';
 import { db } from '@/db';
-import { media, products, washes } from '@/db/schema';
+import { media, products, washExtras, washes } from '@/db/schema';
 
 async function mediaFor(type: 'wash' | 'product') {
   const rows = await db.select().from(media).where(eq(media.ownerType, type)).orderBy(asc(media.position));
@@ -9,8 +9,12 @@ async function mediaFor(type: 'wash' | 'product') {
   return map;
 }
 export async function listWashes() {
-  const [rows, m] = await Promise.all([db.select().from(washes).where(eq(washes.active, true)).orderBy(asc(washes.priceCop)), mediaFor('wash')]);
-  return rows.map(w => ({ ...w, media: m.get(w.id) ?? [] }));
+  const [rows, m, ex] = await Promise.all([db.select().from(washes).where(eq(washes.active, true)).orderBy(asc(washes.priceCop)), mediaFor('wash'), db.select().from(washExtras).orderBy(asc(washExtras.position))]);
+  return rows.map(w => ({ ...w, media: m.get(w.id) ?? [], extras: ex.filter(x => x.washId === w.id) }));
+}
+export async function replaceExtras(washId: string, items: { name: string; description: string; priceCop: number; durationMin: number }[]) {
+  await db.delete(washExtras).where(eq(washExtras.washId, washId));
+  if (items.length) await db.insert(washExtras).values(items.map((x, i) => ({ ...x, washId, position: i })));
 }
 export async function listProducts() {
   const [rows, m] = await Promise.all([db.select().from(products).where(eq(products.active, true)).orderBy(desc(products.createdAt)), mediaFor('product')]);

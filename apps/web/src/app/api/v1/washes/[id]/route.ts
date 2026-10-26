@@ -3,7 +3,7 @@ import { WashInput } from '@dip/shared';
 import { db } from '@/db';
 import { washes } from '@/db/schema';
 import { requireAdmin } from '@/lib/auth';
-import { listWashes, replaceMedia } from '@/lib/catalog';
+import { listWashes, replaceExtras, replaceMedia } from '@/lib/catalog';
 import { fail, handle, ok } from '@/lib/http';
 
 type Ctx = { params: { id: string } };
@@ -14,11 +14,12 @@ export const GET = (_: Request, { params }: Ctx) => handle(async () => {
 });
 export const PUT = (req: Request, { params }: Ctx) => handle(async () => {
   await requireAdmin(req);
-  const { media, ...data } = WashInput.parse(await req.json());
+  const { media, extras, ...data } = WashInput.parse(await req.json());
   const [w] = await db.update(washes).set(data).where(eq(washes.id, params.id)).returning();
   if (!w) return fail('No encontrada', 404);
   await replaceMedia('wash', w.id, media);
-  return ok({ ...w, media });
+  await replaceExtras(w.id, extras);
+  return ok({ ...w, media, extras });
 });
 export const DELETE = (req: Request, { params }: Ctx) => handle(async () => {
   await requireAdmin(req);

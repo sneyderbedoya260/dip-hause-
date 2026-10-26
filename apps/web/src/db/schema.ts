@@ -13,6 +13,10 @@ export const products = sqliteTable('products', {
   priceCop: integer('price_cop').notNull(),
   active: integer('active', { mode: 'boolean' }).notNull().default(true), createdAt: createdAt(),
 });
+export const washExtras = sqliteTable('wash_extras', {
+  id: id(), washId: text('wash_id').notNull(), name: text('name').notNull(), description: text('description').notNull().default(''),
+  priceCop: integer('price_cop').notNull(), durationMin: integer('duration_min').notNull().default(0), position: integer('position').notNull().default(0),
+});
 export const media = sqliteTable('media', {
   id: id(), ownerType: text('owner_type', { enum: ['wash', 'product'] }).notNull(), ownerId: text('owner_id').notNull(),
   kind: text('kind', { enum: ['image', 'video'] }).notNull(), url: text('url').notNull(), position: integer('position').notNull().default(0),
@@ -23,6 +27,7 @@ export const appointments = sqliteTable('appointments', {
   date: text('date').notNull(), time: text('time').notNull(),
   customerName: text('customer_name').notNull(), phone: text('phone').notNull(), email: text('email').notNull(),
   vehicle: text('vehicle').notNull(), plate: text('plate').notNull(),
+  extras: text('extras').notNull().default('[]'), // JSON [{name, priceCop, durationMin}] con el precio al momento de reservar
   address: text('address').notNull(), refs: text('refs').notNull().default(''), notes: text('notes').notNull().default(''),
   status: text('status', { enum: ['pendiente', 'confirmada', 'completada', 'cancelada'] }).notNull().default('pendiente'),
   paymentMethod: text('payment_method', { enum: ['mercadopago', 'cash'] }).notNull(),
