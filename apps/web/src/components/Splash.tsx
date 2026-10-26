@@ -7,7 +7,7 @@ export default function Splash() {
   useEffect(() => {
     let seen = false;
     try { seen = sessionStorage.getItem('dh_splash') === '1'; sessionStorage.setItem('dh_splash', '1'); } catch {}
-    const t1 = setTimeout(() => setState('out'), seen ? 0 : 1600);
+    const t1 = setTimeout(() => { setState('out'); document.body.classList.add('ready'); }, seen ? 0 : 1600);
     const t2 = setTimeout(() => setState('gone'), seen ? 400 : 2100);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, []);
