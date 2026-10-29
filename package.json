@@ -1,11 +1,15 @@
 {
   "name": "dip-house",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev -w @dip/web",
     "build": "npm run build -w @dip/web",
-    "db:push": "npm run db:push -w @dip/web",
-    "db:seed": "npm run db:seed -w @dip/web"
+    "db:seed": "npm run db:seed -w @dip/web",
+    "db:migrate": "npm run db:migrate -w @dip/web",
+    "db:generate": "npm run db:generate -w @dip/web"
   }
 }

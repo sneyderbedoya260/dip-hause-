@@ -8,14 +8,15 @@ apps/mobile      (pendiente) Expo + React Native, consumirá /api/v1
 packages/shared  Esquemas Zod, tipos y utilidades compartidos por web y móvil
 ```
 
-## Arranque
+## Arranque en desarrollo
 
 ```bash
 npm install
 cp .env.example apps/web/.env.local     # ajusta ADMIN_PASSWORD y JWT_SECRET
-npm run db:push && npm run db:seed      # crea la base local (SQLite) con datos de ejemplo
+npm run db:migrate && npm run db:seed   # base SQLite local + datos de ejemplo
 npm run dev                             # http://localhost:3000
 ```
+Producción: ver [DEPLOY.md](DEPLOY.md) (Docker + HTTPS, migraciones automáticas, backups).
 
 ## API v1 (la misma para web y móvil)
 
@@ -35,7 +36,7 @@ npm run dev                             # http://localhost:3000
 
 ## Móvil
 La app usará el mismo backend: login admin con `Authorization: Bearer`, `init_point` de Mercado Pago abierto en el navegador del sistema, y `@dip/shared` para validar formularios.
-En producción mueve las subidas a S3 / R2 / Cloudinary (`src/lib/storage.ts`) y cambia `DATABASE_URL` a Turso o Postgres.
+Los archivos subidos se guardan en `UPLOAD_DIR` y se sirven por `/uploads/*` con soporte de video en iPhone.
 
 ## Estado
 Hecho: API completa, catálogo, agendamiento con disponibilidad, Mercado Pago (preferencia + webhook), splash y skeletons de carga.

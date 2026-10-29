@@ -1,0 +1,7 @@
+{$DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 200MB      # tope de subida de fotos y videos
+	}
+	reverse_proxy app:3000
+}
