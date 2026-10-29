@@ -43,6 +43,6 @@ Pendiente: panel admin (UI), calendario mensual, carrito de productos y pedidos,
 
 ## Subir a GitHub
 ```bash
-git remote add origin git@github.com:TU_USUARIO/dip-house.git
+git remote add origin https://github.com/sneyderbedoya260/dip-hause-.git
 git push -u origin main
 ```
