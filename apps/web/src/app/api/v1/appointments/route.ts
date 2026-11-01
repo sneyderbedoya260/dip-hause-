@@ -2,7 +2,7 @@ import { and, desc, eq, inArray } from 'drizzle-orm';
 import { AppointmentInput } from '@dip/shared';
 import { db } from '@/db';
 import { appointments, washExtras, washes } from '@/db/schema';
-import { requireAdmin } from '@/lib/auth';
+import { getAuth, requireRole } from '@/lib/auth/guard';
 import { availability } from '@/lib/availability';
 import { fail, handle, ok } from '@/lib/http';
 
@@ -21,13 +21,15 @@ export const POST = (req: Request) => handle(async () => {
   if (!free.includes(input.time)) return fail('Ese horario ya no está disponible', 409);
   const { washId, extraIds, ...rest } = input;
   const extras = JSON.stringify(chosen.map(x => ({ name: x.name, priceCop: x.priceCop, durationMin: x.durationMin })));
-  const [a] = await db.insert(appointments).values({ ...rest, washId, washName: w.name, extras, priceCop, durationMin, code: code() }).returning();
+  const auth = await getAuth(req); // si es un cliente con sesión, la cita queda en su cuenta
+  const userId = auth?.user.role === 'customer' ? auth.user.id : undefined;
+  const [a] = await db.insert(appointments).values({ ...rest, userId, washId, washName: w.name, extras, priceCop, durationMin, code: code() }).returning();
   return ok(a, 201);
 });
-/** Admin: lista de citas, ?status=pendiente|confirmada|... */
+/** Personal: el admin ve todas; el empleado solo las que tiene asignadas. ?status=pendiente|confirmada|... */
 export const GET = (req: Request) => handle(async () => {
-  await requireAdmin(req);
+  const a = await requireRole(req, ['admin', 'employee']);
   const status = new URL(req.url).searchParams.get('status');
-  const rows = await db.select().from(appointments).orderBy(desc(appointments.date), desc(appointments.time));
+  const rows = await db.select().from(appointments).where(a.user.role === 'employee' ? eq(appointments.assignedTo, a.user.id) : undefined).orderBy(desc(appointments.date), desc(appointments.time));
   return ok(status ? rows.filter(r => r.status === status) : rows);
 });

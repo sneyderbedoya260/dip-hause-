@@ -4,8 +4,8 @@ import { appointments, settings } from '@/db/schema';
 
 const TZ = process.env.BUSINESS_TZ ?? 'America/Bogota';
 export function nowInTz() {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).map(x => [x.type, x.value]));
-  return { date: `${p.year}-${p.month}-${p.day}`, hour: +p.hour };
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).map(x => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, hour: +p.hour, minute: +p.minute };
 }
 export const addDays = (date: string, n: number) => { const d = new Date(date + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const weekday = (date: string) => new Date(date + 'T12:00:00Z').getUTCDay();

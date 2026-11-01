@@ -81,3 +81,10 @@ input:focus,textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 
 @supports (animation-timeline:view()){
   h2.sec,.sub,.card{animation:rise linear both;animation-timeline:view();animation-range:entry 0% entry 45%}
 }
+
+/* autenticación y panel */
+.auth{width:min(420px,100%);animation:rise .6s ease both}
+.auth .links{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:14px;color:var(--blue)}
+.tag{display:inline-block;font-size:12px;font-weight:700;border-radius:8px;padding:3px 9px;background:#2a2a2a;color:var(--ink)}
+.tag.pendiente{background:#3a2a00;color:#FFB84D}.tag.confirmada{background:#3a2f00;color:var(--blue)}.tag.completada{background:#0e2e20;color:#4ADE9A}.tag.cancelada{background:#3a1012;color:#FF7A82}
+.foot .wrap a{color:var(--mut)}

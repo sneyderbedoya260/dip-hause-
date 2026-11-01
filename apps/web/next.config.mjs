@@ -11,7 +11,7 @@ export default {
   experimental: {
     instrumentationHook: true,     // migraciones + validación de entorno al arrancar
     outputFileTracingRoot: root,   // incluye los paquetes del monorepo
-    serverComponentsExternalPackages: ['@libsql/client', 'libsql'],
+    serverComponentsExternalPackages: ['@libsql/client', 'libsql', 'nodemailer'],
   },
   async headers() {
     return [{ source: '/(.*)', headers: [

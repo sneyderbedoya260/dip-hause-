@@ -12,27 +12,47 @@ packages/shared  Esquemas Zod, tipos y utilidades compartidos por web y móvil
 
 ```bash
 npm install
-cp .env.example apps/web/.env.local     # ajusta ADMIN_PASSWORD y JWT_SECRET
+cp .env.example apps/web/.env.local
 npm run db:migrate && npm run db:seed   # base SQLite local + datos de ejemplo
-npm run dev                             # http://localhost:3000
+npm run dev                             # http://localhost:3000  ·  admin de desarrollo: admin@dip.local / admin-dev-12345  (/admin/ingresar)
 ```
 Producción: ver [DEPLOY.md](DEPLOY.md) (Docker + HTTPS, migraciones automáticas, backups).
 
+## Autenticación y roles
+
+| Rol | Entra por | Cookie | Sesión |
+|---|---|---|---|
+| **cliente** | `/ingresar`, `/registro` | `dh_c` (SameSite=Lax) | 14 días sin uso / 90 máx. |
+| **empleado** y **admin** | `/admin/ingresar` | `dh_s` (SameSite=Strict) | 4 h sin uso / 12 h máx. |
+
+- Dos pantallas, dos endpoints y dos cookies separadas: una cuenta de cliente no puede iniciar en el login del personal ni al revés (siempre responde el mismo error genérico).
+- Contraseñas con scrypt; sesiones en base de datos (token aleatorio, solo se guarda su hash) y revocables; bloqueo progresivo tras 5 fallos; límite de intentos por IP y por correo; defensa CSRF por origen; respuestas idénticas exista o no el correo.
+- El personal se crea desde el panel (invitación por correo con enlace de 48 h); no hay registro público de empleados.
+- Recuperar contraseña: enlace de un solo uso (30 min) por correo; al usarlo se cierran todas las sesiones.
+- Reservado para después: 2FA (TOTP) del personal (`users.totp_secret`), verificación de correo del cliente.
+
+## Notificaciones (correo)
+Un programador interno revisa cada minuto (con `NOTIFY_ENABLED=true`) y envía, una sola vez cada uno:
+- **Empleado:** resumen de sus servicios confirmados del día, con dirección, teléfono y vehículo.
+- **Admin:** aviso de los servicios del día que no tienen empleado asignado.
+- **Cliente:** recordatorio el día anterior (desde `CUSTOMER_REMINDER_HOUR`) y otro unas 2 h antes.
+Registro y reintentos (máx. 3) en la tabla `notifications`. Sin `SMTP_HOST` los correos se imprimen en la consola.
+
 ## API v1 (la misma para web y móvil)
+Móvil: enviar `X-Client: mobile` en el login para recibir el `token` en la respuesta y usarlo como `Authorization: Bearer`.
 
 | Método | Ruta | Acceso |
 |---|---|---|
-| GET | `/api/v1/washes`, `/products` (+ `/:id`) | público |
-| GET | `/api/v1/availability?washId=&days=60` | público: días y horas libres |
-| POST | `/api/v1/appointments` | público: crea cita *pendiente* (acepta `extraIds` de servicios adicionales) |
-| POST | `/api/v1/payments/preference` | público: devuelve `init_point` de Mercado Pago |
-| POST | `/api/v1/payments/webhook` | Mercado Pago |
-| POST | `/api/v1/admin/login` | devuelve `token` (Bearer) y cookie httpOnly |
-| GET / PATCH | `/api/v1/appointments`, `/:id` | admin: listar, confirmar, rechazar, completar |
-| POST / PUT / DELETE | `/api/v1/washes`, `/products` | admin |
-| POST | `/api/v1/uploads` | admin: foto o video en cualquier formato |
-
-**Reglas de negocio:** toda cita nace `pendiente` y bloquea su horario (según la duración del servicio) hasta que el admin la confirme o rechace. El pago aprobado solo marca `pagado`; no confirma la cita.
+| GET | `/washes`, `/products` (+ `/:id`), `/availability?washId=&days=&extraIds=` | público |
+| POST | `/appointments` | público (si hay sesión de cliente, queda en su cuenta) |
+| POST | `/auth/customer/login`, `/auth/staff/login`, `/auth/register` (cliente) | público |
+| POST | `/auth/forgot`, `/auth/reset`, `/auth/logout` | público / sesión |
+| GET | `/auth/me` · POST `/auth/password` | sesión |
+| GET | `/me/appointments` | cliente |
+| GET / PATCH | `/appointments`, `/appointments/:id` | admin (todas) · empleado (solo las suyas; solo completar) |
+| GET / POST / PATCH | `/staff`, `/staff/:id` | admin |
+| POST / PUT / DELETE | `/washes`, `/products`, `/uploads` | admin |
+| POST | `/payments/preference`, `/payments/webhook` | público / Mercado Pago |
 
 ## Móvil
 La app usará el mismo backend: login admin con `Authorization: Bearer`, `init_point` de Mercado Pago abierto en el navegador del sistema, y `@dip/shared` para validar formularios.

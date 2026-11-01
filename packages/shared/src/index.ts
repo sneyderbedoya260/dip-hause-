@@ -47,3 +47,16 @@ export const formatCop = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 export const formatDuration = (m: number) =>
   m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ''}`;
+
+/* ---------- autenticación ---------- */
+export const Role = z.enum(['admin', 'employee', 'customer']);
+export type RoleT = z.infer<typeof Role>;
+export const PasswordSchema = z.string().min(10, 'Mínimo 10 caracteres').max(128, 'Máximo 128 caracteres');
+const Email = z.string().trim().toLowerCase().email('Correo inválido').max(254);
+export const LoginInput = z.object({ email: Email, password: z.string().min(1).max(128) });
+export const RegisterInput = z.object({ name: z.string().trim().min(2).max(80), email: Email, phone: z.string().trim().min(7).max(20), password: PasswordSchema });
+export const ForgotInput = z.object({ email: Email, audience: z.enum(['staff', 'customer']).default('customer') });
+export const ResetInput = z.object({ token: z.string().min(20).max(200), password: PasswordSchema });
+export const ChangePasswordInput = z.object({ current: z.string().min(1).max(128), password: PasswordSchema });
+export const StaffCreateInput = z.object({ name: z.string().trim().min(2).max(80), email: Email, phone: z.string().trim().max(20).default(''), role: z.enum(['admin', 'employee']) });
+export const AppointmentPatch = z.object({ status: AppointmentStatus.optional(), assignedTo: z.string().nullable().optional() });

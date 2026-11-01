@@ -23,8 +23,11 @@ cd /opt/dip-house
 cp .env.production.example .env
 nano .env
 ```
-Genera valores seguros: `openssl rand -base64 48` (para `JWT_SECRET`) y una contraseña larga para `ADMIN_PASSWORD`.
-**La app no arranca** si la contraseña es débil, si `JWT_SECRET` tiene menos de 32 caracteres o si `APP_URL` no es https.
+Define `ADMIN_EMAIL` y `ADMIN_PASSWORD` (mínimo 12 caracteres): crean el **primer administrador** la primera vez que arranca. Después se gestiona todo desde el panel y esas variables ya no se usan (puedes borrarlas del `.env`).
+**La app no arranca** si no existe ningún admin y la clave es débil, o si `APP_URL` no es https.
+
+### Correo (necesario para recuperar contraseña y recordatorios)
+Usa el SMTP de tu proveedor (Google Workspace, Zoho, Brevo, Resend, Amazon SES…) en `SMTP_*` y `MAIL_FROM`. Configura SPF/DKIM del dominio con ese proveedor para que los correos no caigan en spam. Prueba con «¿Olvidaste tu contraseña?» antes de activar `NOTIFY_ENABLED=true`.
 
 ## 3. Levantar
 ```bash
@@ -59,9 +62,10 @@ Antes de actualizar, ejecuta `./scripts/backup.sh`.
 3. Al desplegar, la app lo aplica sola.
 
 ## Pendiente antes de entregar al cliente
-- Panel de administración con pantallas (hoy el admin opera por la API).
+- Panel de administración completo: hoy hay un panel inicial (citas, asignar empleado, invitar personal); falta calendario, lavadas, productos y ajustes.
 - Carrito de productos y pedidos.
-- Notificaciones (correo/WhatsApp) al recibir y confirmar citas.
+- Aviso inmediato al empleado cuando se le asigna un servicio del mismo día (hoy solo recibe el resumen de la mañana).
+- Verificación de correo del cliente y 2FA para el personal.
 - Monitoreo externo de `/api/health` (UptimeRobot, etc.).
 - Revisar términos, política de privacidad y tratamiento de datos personales (Colombia: Ley 1581).
 

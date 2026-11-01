@@ -13,6 +13,8 @@ CREATE TABLE `appointments` (
 	`vehicle` text NOT NULL,
 	`plate` text NOT NULL,
 	`extras` text DEFAULT '[]' NOT NULL,
+	`user_id` text,
+	`assigned_to` text,
 	`address` text NOT NULL,
 	`refs` text DEFAULT '' NOT NULL,
 	`notes` text DEFAULT '' NOT NULL,
@@ -24,6 +26,16 @@ CREATE TABLE `appointments` (
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `auth_tokens` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`type` text NOT NULL,
+	`token_hash` text NOT NULL,
+	`expires_at` integer NOT NULL,
+	`used_at` integer
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `auth_tokens_token_hash_unique` ON `auth_tokens` (`token_hash`);--> statement-breakpoint
 CREATE TABLE `media` (
 	`id` text PRIMARY KEY NOT NULL,
 	`owner_type` text NOT NULL,
@@ -33,6 +45,22 @@ CREATE TABLE `media` (
 	`position` integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `notifications` (
+	`id` text PRIMARY KEY NOT NULL,
+	`dedupe_key` text NOT NULL,
+	`kind` text NOT NULL,
+	`appointment_id` text,
+	`user_id` text,
+	`to_email` text NOT NULL,
+	`status` text DEFAULT 'pending' NOT NULL,
+	`attempts` integer DEFAULT 1 NOT NULL,
+	`last_error` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	`sent_at` integer
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `notifications_dedupe_key_unique` ON `notifications` (`dedupe_key`);--> statement-breakpoint
 CREATE TABLE `products` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,
@@ -42,6 +70,18 @@ CREATE TABLE `products` (
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `sessions` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`audience` text NOT NULL,
+	`created_at` integer NOT NULL,
+	`last_seen_at` integer NOT NULL,
+	`expires_at` integer NOT NULL,
+	`absolute_expires_at` integer NOT NULL,
+	`ip` text DEFAULT '' NOT NULL,
+	`user_agent` text DEFAULT '' NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `settings` (
 	`id` integer PRIMARY KEY NOT NULL,
 	`days` text DEFAULT '1,2,3,4,5,6' NOT NULL,
@@ -49,6 +89,23 @@ CREATE TABLE `settings` (
 	`close_hour` integer DEFAULT 18 NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE `users` (
+	`id` text PRIMARY KEY NOT NULL,
+	`email` text NOT NULL,
+	`name` text NOT NULL,
+	`phone` text DEFAULT '' NOT NULL,
+	`role` text NOT NULL,
+	`password_hash` text NOT NULL,
+	`email_verified_at` integer,
+	`failed_logins` integer DEFAULT 0 NOT NULL,
+	`locked_until` integer,
+	`active` integer DEFAULT true NOT NULL,
+	`totp_secret` text,
+	`last_login_at` integer,
+	`created_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);--> statement-breakpoint
 CREATE TABLE `wash_extras` (
 	`id` text PRIMARY KEY NOT NULL,
 	`wash_id` text NOT NULL,

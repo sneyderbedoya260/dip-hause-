@@ -28,6 +28,7 @@ export const appointments = sqliteTable('appointments', {
   customerName: text('customer_name').notNull(), phone: text('phone').notNull(), email: text('email').notNull(),
   vehicle: text('vehicle').notNull(), plate: text('plate').notNull(),
   extras: text('extras').notNull().default('[]'), // JSON [{name, priceCop, durationMin}] con el precio al momento de reservar
+  userId: text('user_id'), assignedTo: text('assigned_to'), // cliente con cuenta y empleado asignado
   address: text('address').notNull(), refs: text('refs').notNull().default(''), notes: text('notes').notNull().default(''),
   status: text('status', { enum: ['pendiente', 'confirmada', 'completada', 'cancelada'] }).notNull().default('pendiente'),
   paymentMethod: text('payment_method', { enum: ['mercadopago', 'cash'] }).notNull(),
@@ -37,4 +38,32 @@ export const appointments = sqliteTable('appointments', {
 export const settings = sqliteTable('settings', {
   id: integer('id').primaryKey(), days: text('days').notNull().default('1,2,3,4,5,6'),
   openHour: integer('open_hour').notNull().default(8), closeHour: integer('close_hour').notNull().default(18),
+});
+
+export const users = sqliteTable('users', {
+  id: id(), email: text('email').notNull().unique(), name: text('name').notNull(), phone: text('phone').notNull().default(''),
+  role: text('role', { enum: ['admin', 'employee', 'customer'] }).notNull(), passwordHash: text('password_hash').notNull(),
+  emailVerifiedAt: integer('email_verified_at', { mode: 'timestamp' }),
+  failedLogins: integer('failed_logins').notNull().default(0), lockedUntil: integer('locked_until', { mode: 'timestamp' }),
+  active: integer('active', { mode: 'boolean' }).notNull().default(true),
+  totpSecret: text('totp_secret'), // reservado para 2FA (TOTP) del personal
+  lastLoginAt: integer('last_login_at', { mode: 'timestamp' }), createdAt: createdAt(),
+});
+/** Sesiones en el servidor: el cookie solo lleva un token aleatorio; aquí se guarda su hash. Se pueden revocar. */
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(), userId: text('user_id').notNull(), audience: text('audience', { enum: ['staff', 'customer'] }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull(), lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }).notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(), absoluteExpiresAt: integer('absolute_expires_at', { mode: 'timestamp' }).notNull(),
+  ip: text('ip').notNull().default(''), userAgent: text('user_agent').notNull().default(''),
+});
+export const authTokens = sqliteTable('auth_tokens', {
+  id: id(), userId: text('user_id').notNull(), type: text('type', { enum: ['reset'] }).notNull(), tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(), usedAt: integer('used_at', { mode: 'timestamp' }),
+});
+/** Registro de correos: la clave dedupeKey evita enviar dos veces el mismo recordatorio. */
+export const notifications = sqliteTable('notifications', {
+  id: id(), dedupeKey: text('dedupe_key').notNull().unique(), kind: text('kind').notNull(), appointmentId: text('appointment_id'), userId: text('user_id'),
+  toEmail: text('to_email').notNull(), status: text('status', { enum: ['pending', 'sent', 'failed'] }).notNull().default('pending'),
+  attempts: integer('attempts').notNull().default(1), lastError: text('last_error'),
+  createdAt: createdAt(), updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()), sentAt: integer('sent_at', { mode: 'timestamp' }),
 });

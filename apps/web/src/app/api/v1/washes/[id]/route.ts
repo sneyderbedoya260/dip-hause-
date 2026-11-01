@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { WashInput } from '@dip/shared';
 import { db } from '@/db';
 import { washes } from '@/db/schema';
-import { requireAdmin } from '@/lib/auth';
+import { requireRole } from '@/lib/auth/guard';
 import { listWashes, replaceExtras, replaceMedia } from '@/lib/catalog';
 import { fail, handle, ok } from '@/lib/http';
 
@@ -13,7 +13,7 @@ export const GET = (_: Request, { params }: Ctx) => handle(async () => {
   return w ? ok(w) : fail('No encontrada', 404);
 });
 export const PUT = (req: Request, { params }: Ctx) => handle(async () => {
-  await requireAdmin(req);
+  await requireRole(req, ['admin']);
   const { media, extras, ...data } = WashInput.parse(await req.json());
   const [w] = await db.update(washes).set(data).where(eq(washes.id, params.id)).returning();
   if (!w) return fail('No encontrada', 404);
@@ -22,7 +22,7 @@ export const PUT = (req: Request, { params }: Ctx) => handle(async () => {
   return ok({ ...w, media, extras });
 });
 export const DELETE = (req: Request, { params }: Ctx) => handle(async () => {
-  await requireAdmin(req);
+  await requireRole(req, ['admin']);
   await db.update(washes).set({ active: false }).where(eq(washes.id, params.id)); // baja lógica: conserva el historial de citas
   return ok({ deleted: true });
 });
