@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 import { ProductInput } from '@dip/shared';
 import { db } from '@/db';
 import { products } from '@/db/schema';
@@ -19,6 +20,13 @@ export const PUT = (req: Request, { params }: Ctx) => handle(async () => {
   if (!p) return fail('No encontrado', 404);
   await replaceMedia('product', p.id, media);
   return ok({ ...p, media });
+});
+/** Admin: activar / desactivar (baja lógica). */
+export const PATCH = (req: Request, { params }: Ctx) => handle(async () => {
+  await requireRole(req, ['admin']);
+  const { active } = z.object({ active: z.boolean() }).parse(await req.json());
+  await db.update(products).set({ active }).where(eq(products.id, params.id));
+  return ok({ active });
 });
 export const DELETE = (req: Request, { params }: Ctx) => handle(async () => {
   await requireRole(req, ['admin']);

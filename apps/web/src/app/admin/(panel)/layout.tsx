@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import AdminNav from '@/components/admin/AdminNav';
 import LogoutButton from '@/components/LogoutButton';
 import { serverUser } from '@/lib/auth/guard';
 
@@ -12,6 +13,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
         <div><h2 className="sec" style={{ margin: 0 }}>Panel</h2><p className="sub" style={{ margin: 0 }}>{me.name} · {me.role === 'admin' ? 'Administrador' : 'Empleado'}</p></div>
         <LogoutButton to="/admin/ingresar" />
       </div>
+      <AdminNav role={me.role as 'admin' | 'employee'} />
       {children}
     </div>
   );

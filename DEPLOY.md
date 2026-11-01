@@ -62,7 +62,7 @@ Antes de actualizar, ejecuta `./scripts/backup.sh`.
 3. Al desplegar, la app lo aplica sola.
 
 ## Pendiente antes de entregar al cliente
-- Panel de administración completo: hoy hay un panel inicial (citas, asignar empleado, invitar personal); falta calendario, lavadas, productos y ajustes.
+- Pedidos de productos: falta el carrito del cliente y la sección «Pedidos» del panel (el catálogo ya se administra).
 - Carrito de productos y pedidos.
 - Aviso inmediato al empleado cuando se le asigna un servicio del mismo día (hoy solo recibe el resumen de la mañana).
 - Verificación de correo del cliente y 2FA para el personal.

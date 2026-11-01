@@ -6,7 +6,11 @@ import { listWashes, replaceExtras, replaceMedia } from '@/lib/catalog';
 import { handle, ok } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
-export const GET = () => handle(async () => ok(await listWashes()));
+export const GET = (req: Request) => handle(async () => {
+  const all = new URL(req.url).searchParams.get('all') === '1';
+  if (all) await requireRole(req, ['admin']); // el admin también ve los desactivados
+  return ok(await listWashes(all));
+});
 export const POST = (req: Request) => handle(async () => {
   await requireRole(req, ['admin']);
   const { media, extras, ...data } = WashInput.parse(await req.json());

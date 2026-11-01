@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm';
+import { z } from 'zod';
 import { WashInput } from '@dip/shared';
 import { db } from '@/db';
 import { washes } from '@/db/schema';
@@ -20,6 +21,13 @@ export const PUT = (req: Request, { params }: Ctx) => handle(async () => {
   await replaceMedia('wash', w.id, media);
   await replaceExtras(w.id, extras);
   return ok({ ...w, media, extras });
+});
+/** Admin: activar / desactivar (baja lógica). */
+export const PATCH = (req: Request, { params }: Ctx) => handle(async () => {
+  await requireRole(req, ['admin']);
+  const { active } = z.object({ active: z.boolean() }).parse(await req.json());
+  await db.update(washes).set({ active }).where(eq(washes.id, params.id));
+  return ok({ active });
 });
 export const DELETE = (req: Request, { params }: Ctx) => handle(async () => {
   await requireRole(req, ['admin']);

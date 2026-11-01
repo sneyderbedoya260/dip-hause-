@@ -18,6 +18,17 @@ npm run dev                             # http://localhost:3000  ·  admin de de
 ```
 Producción: ver [DEPLOY.md](DEPLOY.md) (Docker + HTTPS, migraciones automáticas, backups).
 
+## Panel de administración (`/admin`)
+| Sección | Quién | Qué hace |
+|---|---|---|
+| **Citas** | admin | Por confirmar / confirmadas / completadas / canceladas; confirmar, rechazar, completar y **asignar empleado** |
+| **Calendario** | admin | Mes completo con conteo de citas confirmadas y por confirmar por día; al elegir un día: servicio, adicionales, cliente, **dirección con enlace a Maps**, teléfono |
+| **Lavadas** | admin | Crear, editar, activar/desactivar; precio, duración, descripción, **fotos y videos de cualquier formato** y **servicios adicionales** |
+| **Productos** | admin | Crear, editar, activar/desactivar; foto, **video opcional**, precio, descripción |
+| **Personal** | admin | Invitar empleados/administradores por correo, activar/desactivar |
+| **Ajustes** | admin | Días de servicio y horas de apertura/cierre (definen qué ven los clientes disponible) |
+| **Mis servicios** | empleado | Solo sus servicios asignados; puede marcarlos como completados |
+
 ## Autenticación y roles
 
 | Rol | Entra por | Cookie | Sesión |
