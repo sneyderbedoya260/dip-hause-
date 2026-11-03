@@ -4,7 +4,7 @@ import { ZodError } from 'zod';
 export const ok = (data: unknown, status = 200) => NextResponse.json(data, { status });
 export const fail = (message: string, status = 400) => NextResponse.json({ error: message }, { status });
 
-export async function handle(fn: () => Promise<NextResponse>) {
+export async function handle(fn: () => Promise<Response>) {
   try { return await fn(); }
   catch (e) {
     if (e instanceof ZodError) return fail(e.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; '), 400);

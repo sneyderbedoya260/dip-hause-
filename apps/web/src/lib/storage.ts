@@ -26,3 +26,14 @@ export async function saveFile(file: File) {
   await writeFile(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
   return { url: `/uploads/${name}`, kind };
 }
+
+export const EVIDENCE_DIR = process.env.EVIDENCE_DIR ?? path.join(path.dirname(UPLOAD_DIR), 'evidence'); // fuera de /uploads: nunca se sirve públicamente
+export const EVIDENCE_MAX_MB = +(process.env.EVIDENCE_MAX_MB ?? 150);
+export async function saveEvidence(file: File) {
+  const kind = kindOf(file);
+  if (!kind) throw new Error('Formato no reconocido. Sube una foto o un video.');
+  const fileName = `${crypto.randomUUID()}${path.extname(file.name).toLowerCase() || (kind === 'video' ? '.mp4' : '.jpg')}`;
+  await mkdir(EVIDENCE_DIR, { recursive: true });
+  await writeFile(path.join(EVIDENCE_DIR, fileName), Buffer.from(await file.arrayBuffer()));
+  return { fileName, kind };
+}

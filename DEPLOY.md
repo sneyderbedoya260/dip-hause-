@@ -47,7 +47,7 @@ Al arrancar, la app aplica sola las migraciones de la base (nunca borran datos).
 ./scripts/backup.sh                                   # prueba manual
 crontab -e   →   0 3 * * * cd /opt/dip-house && ./scripts/backup.sh >> backups/backup.log 2>&1
 ```
-Guarda base de datos y archivos en `backups/` (conserva 14 días). **Copia esa carpeta fuera del servidor** (otro servidor, S3/Backblaze, Google Drive con rclone). Un backup en el mismo disco no sirve si el disco falla.
+Guarda la base de datos, el catálogo y las **evidencias de los clientes** en `backups/` (conserva 14 días). **Copia esa carpeta fuera del servidor** (otro servidor, S3/Backblaze, Google Drive con rclone). Un backup en el mismo disco no sirve si el disco falla.
 Restaurar: detén la app, copia el `.db` a `/data/app.db` dentro del volumen y vuelve a levantar.
 
 ## 6. Actualizar a una versión nueva

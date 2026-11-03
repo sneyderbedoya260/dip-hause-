@@ -6,6 +6,8 @@ import { formatCop, formatDuration } from '@dip/shared';
 type Extra = { id: string; name: string; description: string; priceCop: number; durationMin: number };
 type Wash = { id: string; name: string; priceCop: number; durationMin: number; extras: Extra[] };
 const label = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+type Ev = { id: string; kind: 'image' | 'video'; name: string; preview: string };
+const ACCEPT = 'image/*,video/*,.heic,.heif,.avif,.jfif,.tif,.tiff,.bmp,.mov,.mkv,.avi,.wmv,.flv,.3gp,.3g2,.m4v,.mts,.m2ts,.mpg,.mpeg,.ogv';
 const empty = { customerName: '', phone: '', email: '', vehicle: '', plate: '', address: '', refs: '', notes: '' };
 
 export default function Agendar() {
@@ -15,6 +17,7 @@ export default function Agendar() {
   const [picked, setPicked] = useState<string[]>([]);
   const [date, setDate] = useState(''); const [time, setTime] = useState('');
   const [f, setF] = useState(empty); const [method, setMethod] = useState<'mercadopago' | 'cash'>('mercadopago');
+  const [ev, setEv] = useState<Ev[]>([]); const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [done, setDone] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,12 +32,27 @@ export default function Agendar() {
   const toggle = (id: string) => setPicked(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   const set = (k: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
 
+  async function addEvidence(files: FileList | null) {
+    if (!files?.length) return;
+    setErr(''); setUploading(true);
+    const added: Ev[] = [];
+    for (const file of Array.from(files)) {
+      if (ev.length + added.length >= 10) { setErr('Máximo 10 archivos.'); break; }
+      const fd = new FormData(); fd.append('file', file);
+      const r = await fetch('/api/v1/evidence', { method: 'POST', body: fd });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(`${file.name}: ${d.error ?? 'no se pudo subir'}`); continue; }
+      added.push({ id: d.id, kind: d.kind, name: file.name, preview: URL.createObjectURL(file) });
+    }
+    setEv(prev => [...prev, ...added]); setUploading(false);
+  }
   async function submit() {
     setErr('');
+    if (ev.length === 0) return setErr('Debes adjuntar al menos una foto o video del estado del vehículo para agendar.');
     if (!date || !time) return setErr('Elige un día y una hora disponibles.');
     setBusy(true);
     try {
-      const r = await fetch('/api/v1/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ washId, date, time, paymentMethod: method, extraIds: picked, ...f }) });
+      const r = await fetch('/api/v1/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ washId, date, time, paymentMethod: method, extraIds: picked, evidenceIds: ev.map(x => x.id), ...f }) });
       const a = await r.json();
       if (!r.ok) throw new Error(a.error);
       if (method === 'mercadopago') {
@@ -64,6 +82,14 @@ export default function Agendar() {
       {date && <><b>Horarios disponibles</b><div className="slots" style={{ marginTop: 8 }}>{days[date].map(t => <button key={t} className="pill" aria-pressed={time === t} onClick={() => setTime(t)}>{t}</button>)}</div></>}
       {([['customerName', 'Nombre completo'], ['phone', 'Teléfono'], ['email', 'Correo electrónico'], ['vehicle', 'Vehículo (marca y modelo)'], ['plate', 'Placa'], ['address', 'Dirección del servicio'], ['refs', 'Barrio o referencias (opcional)']] as const).map(([k, l]) =>
         <label className="f" key={k}>{l}<input value={f[k]} onChange={set(k)} type={k === 'email' ? 'email' : k === 'phone' ? 'tel' : 'text'} /></label>)}
+      <div className="f"><span style={{ fontWeight: 600, fontSize: 14 }}>Evidencias del estado del vehículo <b style={{ color: 'var(--red)' }} aria-label="obligatorio">*</b></span>
+        <p className="note" style={{ margin: '2px 0 0' }}>Presente aquí las evidencias del estado de su vehículo (fotos y/o videos). Es obligatorio para poder agendar.</p>
+        <label className={`drop${uploading ? ' loading' : ''}`}>{uploading ? 'Subiendo…' : 'Subir fotos o videos'}<input className="vh" type="file" multiple accept={ACCEPT} onChange={e => { addEvidence(e.target.files); e.target.value = ''; }} /></label>
+        {ev.length > 0 && <><div className="mgrid">{ev.map(x => (
+          <div className="mi" key={x.id}>{x.kind === 'video' ? <video src={x.preview} muted playsInline preload="metadata" /> : <img src={x.preview} alt={x.name} />}
+            {x.kind === 'video' && <span className="vb">video</span>}
+            <button type="button" onClick={() => setEv(ev.filter(y => y.id !== x.id))} aria-label={`Quitar ${x.name}`}>✕</button></div>))}</div>
+          <p className="note">{ev.length} archivo(s) adjunto(s)</p></>}</div>
       <label className="f">Notas (opcional)<textarea rows={2} value={f.notes} onChange={set('notes')} /></label>
       <label className="f">Método de pago
         <select value={method} onChange={e => setMethod(e.target.value as 'mercadopago' | 'cash')}>
@@ -71,7 +97,7 @@ export default function Agendar() {
         </select></label>
       {err && <p className="err" role="alert">{err}</p>}
       <p className="note">El administrador debe confirmar tu cita. Tu horario queda reservado mientras tanto.</p>
-      <button className={`btn${busy ? ' loading' : ''}`} style={{ width: '100%', marginTop: 12 }} onClick={submit}>{method === 'mercadopago' ? `Pagar ${formatCop(total)}` : 'Enviar solicitud'}</button>
+      <button className={`btn${busy ? ' loading' : ''}`} disabled={uploading} style={{ width: '100%', marginTop: 12 }} onClick={submit}>{method === 'mercadopago' ? `Pagar ${formatCop(total)}` : 'Enviar solicitud'}</button>
     </main>
   );
 }

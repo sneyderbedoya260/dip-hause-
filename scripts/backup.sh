@@ -12,7 +12,7 @@ createClient({url:process.env.DATABASE_URL}).execute(\"VACUUM INTO '/data/backup
 "
 docker compose cp "app:/data/backups/app-$STAMP.db" "backups/app-$STAMP.db"
 docker compose exec -T app rm -f "/data/backups/app-$STAMP.db"
-docker compose exec -T app tar -czf - -C /data uploads > "backups/uploads-$STAMP.tar.gz"
+docker compose exec -T app tar -czf - -C /data uploads evidence > "backups/uploads-$STAMP.tar.gz"
 find backups -name 'app-*.db' -mtime +14 -delete
 find backups -name 'uploads-*.tar.gz' -mtime +14 -delete
 echo "Backup $STAMP listo"

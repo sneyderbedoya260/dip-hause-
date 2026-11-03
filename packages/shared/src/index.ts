@@ -38,6 +38,8 @@ export const AppointmentInput = z.object({
   refs: z.string().trim().default(''),
   notes: z.string().trim().default(''),
   extraIds: z.array(z.string()).default([]),
+  // Obligatorio: fotos y/o videos del estado del vehículo (ids devueltos por POST /api/v1/evidence)
+  evidenceIds: z.array(z.string()).min(1, 'Debes adjuntar al menos una foto o video del estado del vehículo').max(10),
   paymentMethod: z.enum(['mercadopago', 'cash']).default('mercadopago'),
 });
 export const AppointmentStatus = z.enum(['pendiente', 'confirmada', 'completada', 'cancelada']);

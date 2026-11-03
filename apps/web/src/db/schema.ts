@@ -67,3 +67,10 @@ export const notifications = sqliteTable('notifications', {
   attempts: integer('attempts').notNull().default(1), lastError: text('last_error'),
   createdAt: createdAt(), updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()), sentAt: integer('sent_at', { mode: 'timestamp' }),
 });
+
+/** Evidencias (fotos/videos) del estado del vehículo que el cliente sube al agendar. Privadas: solo las ve el personal autorizado y el dueño de la cita. */
+export const evidence = sqliteTable('evidence', {
+  id: id(), appointmentId: text('appointment_id'), // null = subida pero aún sin cita (se borra a las 24 h si no se usa)
+  kind: text('kind', { enum: ['image', 'video'] }).notNull(), fileName: text('file_name').notNull(), originalName: text('original_name').notNull().default(''),
+  sizeBytes: integer('size_bytes').notNull().default(0), ip: text('ip').notNull().default(''), createdAt: createdAt(),
+});

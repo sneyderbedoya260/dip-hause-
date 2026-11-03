@@ -29,6 +29,12 @@ Producción: ver [DEPLOY.md](DEPLOY.md) (Docker + HTTPS, migraciones automática
 | **Ajustes** | admin | Días de servicio y horas de apertura/cierre (definen qué ven los clientes disponible) |
 | **Mis servicios** | empleado | Solo sus servicios asignados; puede marcarlos como completados |
 
+## Evidencias del estado del vehículo (obligatorias)
+Para agendar, el cliente **debe** adjuntar al menos una foto o video del estado de su vehículo («Presente aquí las evidencias del estado de su vehículo»). Sin evidencias la API responde 400 y la pantalla no deja continuar.
+- Se suben con `POST /api/v1/evidence` (una por una; cualquier formato de foto o video; invitados incluidos; límite por red y `EVIDENCE_MAX_MB`, 150 por defecto) y se envían como `evidenceIds` (1 a 10) al crear la cita. Cada evidencia solo se puede usar en una cita.
+- Son **privadas**: se guardan fuera de `/uploads` (carpeta `evidence`) y solo se ven con sesión: el admin, el empleado **asignado** a esa cita o el cliente dueño. Las que se suben y no se usan se borran a las 24 h.
+- El admin las ve en cada cita (lista y calendario) y puede abrirlas en grande.
+
 ## Autenticación y roles
 
 | Rol | Entra por | Cookie | Sesión |
@@ -55,7 +61,9 @@ Móvil: enviar `X-Client: mobile` en el login para recibir el `token` en la resp
 | Método | Ruta | Acceso |
 |---|---|---|
 | GET | `/washes`, `/products` (+ `/:id`), `/availability?washId=&days=&extraIds=` | público |
-| POST | `/appointments` | público (si hay sesión de cliente, queda en su cuenta) |
+| POST | `/evidence` | público: sube una foto/video del vehículo → `{id, kind}` |
+| GET | `/evidence/:id` | admin · empleado asignado · cliente dueño (privado) |
+| POST | `/appointments` | público, **requiere `evidenceIds`** (si hay sesión de cliente, queda en su cuenta) |
 | POST | `/auth/customer/login`, `/auth/staff/login`, `/auth/register` (cliente) | público |
 | POST | `/auth/forgot`, `/auth/reset`, `/auth/logout` | público / sesión |
 | GET | `/auth/me` · POST `/auth/password` | sesión |

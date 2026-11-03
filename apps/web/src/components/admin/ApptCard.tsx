@@ -20,6 +20,11 @@ export default function ApptCard({ a, admin, team, onPatch, showDay }: { a: Appt
       {a.refs && <span className="note">{a.refs}</span>}
       <span className="note">{a.vehicle} · {a.plate} · {formatCop(a.priceCop)} · {a.paymentStatus === 'pagado' ? 'pagado' : 'por pagar'} · {a.code}</span>
       {a.notes && <span className="note">Notas: {a.notes}</span>}
+      <div><span className="note">Evidencias del vehículo ({a.evidence?.length ?? 0})</span>
+        {a.evidence && a.evidence.length > 0 ? <div className="mgrid" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>{a.evidence.map(e => (
+          <a key={e.id} className="mi" href={`/api/v1/evidence/${e.id}`} target="_blank" rel="noopener noreferrer" aria-label={`Abrir ${e.kind === 'video' ? 'video' : 'foto'}`}>
+            {e.kind === 'video' ? <video src={`/api/v1/evidence/${e.id}`} muted playsInline preload="metadata" /> : <img src={`/api/v1/evidence/${e.id}`} alt="Evidencia del vehículo" loading="lazy" />}
+            {e.kind === 'video' && <span className="vb">video</span>}</a>))}</div> : <span className="note" style={{ display: 'block' }}>Sin evidencias</span>}</div>
       {admin && a.status !== 'cancelada' && <label className="f">Empleado asignado<select value={a.assignedTo ?? ''} onChange={e => onPatch(a.id, { assignedTo: e.target.value || null })}><option value="">Sin asignar</option>{team.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>}
       {acts.length > 0 && <div className="row" style={{ marginTop: 8, justifyContent: 'flex-start', flexWrap: 'wrap' }}>{acts}</div>}
     </div></article>
