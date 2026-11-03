@@ -9,6 +9,23 @@ La base de datos es un archivo SQLite y los archivos subidos viven en un volumen
 - Puertos 80 y 443 abiertos en el firewall del servidor.
 - Credenciales de Mercado Pago (de prueba primero).
 
+## 0. Crear el servidor en Hetzner (Cloud)
+1. **Llave SSH** (en tu computador): `ssh-keygen -t ed25519` y copia el contenido de `~/.ssh/id_ed25519.pub`.
+2. En Hetzner Cloud: proyecto nuevo → *Add Server*:
+   - **Imagen:** Ubuntu 24.04. **Tamaño:** mínimo 2 vCPU y **4 GB de RAM** (compilar la imagen con 2 GB suele quedarse sin memoria). Disco 40 GB para empezar.
+   - **Ubicación:** para clientes en Colombia, Ashburn (EE. UU.) da menos latencia que Alemania/Finlandia; revisa que el tipo de servidor esté disponible allí y cuánto tráfico incluye.
+   - **SSH key:** pega la pública. Activa **Backups** del servidor (copia diaria completa; es un extra de pago, y no reemplaza al script de abajo).
+   - **Firewall (Hetzner):** entrada solo 22 (idealmente tu IP), 80 y 443.
+3. **DNS:** en tu dominio crea un registro **A** `lavados.tudominio.com` → IP del servidor.
+4. **Preparar el servidor:** `ssh root@IP`, clona el repo (si es privado, crea una *deploy key* de solo lectura en GitHub: `ssh-keygen -t ed25519` en el servidor y pega la pública en Settings → Deploy keys) y ejecuta `bash scripts/server-setup.sh` (Docker, firewall, fail2ban, actualizaciones automáticas, swap).
+5. **Correo:** Hetzner **bloquea el envío por los puertos 25 y 465**; el 587 está abierto. Usa un SMTP externo con `SMTP_PORT=587` (Brevo, Amazon SES, Resend, Zoho, Google Workspace…).
+6. Sigue con los pasos 2 a 6 de abajo.
+
+> Docker publica los puertos por encima de `ufw`: por eso `docker-compose.yml` solo publica 80 y 443 (la app no se expone). No agregues `ports:` al servicio `app`.
+
+**Disco:** las evidencias son fotos y videos de clientes; pueden crecer rápido (decenas de GB al año). Revisa `df -h` cada mes, agrega un *Volume* de Hetzner si hace falta y define cuánto tiempo las conservas.
+**Copia fuera del servidor:** además de `./scripts/backup.sh`, sincroniza `backups/` a una *Storage Box* de Hetzner o a Object Storage (rsync/rclone por SSH) con otro cron. Una copia en el mismo disco no protege si el servidor se pierde.
+
 ## 1. Preparar el servidor
 ```bash
 curl -fsSL https://get.docker.com | sh          # instala Docker + compose
