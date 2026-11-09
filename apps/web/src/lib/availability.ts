@@ -13,8 +13,8 @@ export const hoursNeeded = (min: number) => Math.max(1, Math.ceil(min / 60));
 
 export async function getSettings() {
   const [s] = await db.select().from(settings).where(eq(settings.id, 1));
-  const v = s ?? { id: 1, days: '1,2,3,4,5,6', openHour: 8, closeHour: 18 };
-  return { days: v.days.split(',').map(Number), open: v.openHour, close: v.closeHour };
+  const v = s ?? { id: 1, days: '1,2,3,4,5,6', openHour: 8, closeHour: 18, evidenceRetentionDays: 365 };
+  return { days: v.days.split(',').map(Number), open: v.openHour, close: v.closeHour, retention: v.evidenceRetentionDays };
 }
 
 /** Horas libres por día. Las citas pendientes y confirmadas bloquean horario. */

@@ -1,115 +1,81 @@
-# Despliegue en servidor propio (Docker + HTTPS)
+# Despliegue en Hetzner (Docker + HTTPS)
 
-Pensado para un VPS Linux (Ubuntu 22.04/24.04, 1 vCPU / 1–2 GB RAM alcanza para empezar).
-Todo corre con `docker compose`: la app (Next.js + API) y Caddy (HTTPS automático con Let's Encrypt).
-La base de datos es un archivo SQLite y los archivos subidos viven en un volumen Docker (`appdata`).
+**Idea:** GitHub compila la imagen (gratis) → el servidor solo la descarga y la ejecuta. Por eso un servidor de **2 GB de RAM** alcanza (la app usa ~200 MB, tope 768 MB). Todo corre con `docker compose`: la app (Next.js + API) y Caddy (HTTPS automático con Let's Encrypt). Los datos viven en un volumen Docker (`appdata`): base SQLite, catálogo, evidencias y copias.
 
-## Antes de empezar
-- Un dominio o subdominio (ej. `lavados.tudominio.com`) con un registro **A** apuntando a la IP del servidor.
-- Puertos 80 y 443 abiertos en el firewall del servidor.
-- Credenciales de Mercado Pago (de prueba primero).
-
-## 0. Crear el servidor en Hetzner (Cloud)
-1. **Llave SSH** (en tu computador): `ssh-keygen -t ed25519` y copia el contenido de `~/.ssh/id_ed25519.pub`.
-2. En Hetzner Cloud: proyecto nuevo → *Add Server*:
-   - **Imagen:** Ubuntu 24.04. **Tamaño:** mínimo 2 vCPU y **4 GB de RAM** (compilar la imagen con 2 GB suele quedarse sin memoria). Disco 40 GB para empezar.
-   - **Ubicación:** para clientes en Colombia, Ashburn (EE. UU.) da menos latencia que Alemania/Finlandia; revisa que el tipo de servidor esté disponible allí y cuánto tráfico incluye.
-   - **SSH key:** pega la pública. Activa **Backups** del servidor (copia diaria completa; es un extra de pago, y no reemplaza al script de abajo).
-   - **Firewall (Hetzner):** entrada solo 22 (idealmente tu IP), 80 y 443.
-3. **DNS:** en tu dominio crea un registro **A** `lavados.tudominio.com` → IP del servidor.
-4. **Preparar el servidor:** `ssh root@IP`, clona el repo (si es privado, crea una *deploy key* de solo lectura en GitHub: `ssh-keygen -t ed25519` en el servidor y pega la pública en Settings → Deploy keys) y ejecuta `bash scripts/server-setup.sh` (Docker, firewall, fail2ban, actualizaciones automáticas, swap).
-5. **Correo:** Hetzner **bloquea el envío por los puertos 25 y 465**; el 587 está abierto. Usa un SMTP externo con `SMTP_PORT=587` (Brevo, Amazon SES, Resend, Zoho, Google Workspace…).
-6. Ejecuta `./scripts/preflight.sh` y, si todo está en verde, sigue con los pasos 2 a 6 de abajo.
-
-> Docker publica los puertos por encima de `ufw`: por eso `docker-compose.yml` solo publica 80 y 443 (la app no se expone). No agregues `ports:` al servicio `app`.
-
-**Disco:** las evidencias son fotos y videos de clientes; pueden crecer rápido (decenas de GB al año). Revisa `df -h` cada mes, agrega un *Volume* de Hetzner si hace falta y define cuánto tiempo las conservas.
-**Copia fuera del servidor:** además de `./scripts/backup.sh`, sincroniza `backups/` a una *Storage Box* de Hetzner o a Object Storage (rsync/rclone por SSH) con otro cron. Una copia en el mismo disco no protege si el servidor se pierde.
-
-## 1. Preparar el servidor
-```bash
-curl -fsSL https://get.docker.com | sh          # instala Docker + compose
-sudo usermod -aG docker $USER && newgrp docker
-sudo mkdir -p /opt/dip-house && sudo chown $USER /opt/dip-house
-git clone git@github.com:TU_USUARIO/dip-house.git /opt/dip-house
-cd /opt/dip-house
-```
-
-## 2. Configurar
-```bash
-cp .env.production.example .env
-nano .env
-```
-Define `ADMIN_EMAIL` y `ADMIN_PASSWORD` (mínimo 12 caracteres): crean el **primer administrador** la primera vez que arranca. Después se gestiona todo desde el panel y esas variables ya no se usan (puedes borrarlas del `.env`).
-**La app no arranca** si no existe ningún admin y la clave es débil, o si `APP_URL` no es https.
-
-### Correo (necesario para recuperar contraseña y recordatorios)
-Usa el SMTP de tu proveedor (Google Workspace, Zoho, Brevo, Resend, Amazon SES…) en `SMTP_*` y `MAIL_FROM`. Configura SPF/DKIM del dominio con ese proveedor para que los correos no caigan en spam. Prueba con «¿Olvidaste tu contraseña?» antes de activar `NOTIFY_ENABLED=true`.
-
-## 3. Levantar
-```bash
-docker compose up -d --build
-docker compose logs -f app        # debe decir: [dip-house] base lista
-```
-Al arrancar, la app aplica sola las migraciones de la base (nunca borran datos). Abre `https://TU_DOMINIO` y `https://TU_DOMINIO/api/health`.
-
-## 4. Mercado Pago
-1. En el panel de desarrolladores de Mercado Pago, crea la aplicación y copia el **Access Token** a `MP_ACCESS_TOKEN`.
-2. Webhook: `https://TU_DOMINIO/api/v1/payments/webhook` (evento *Pagos*). Copia la **clave secreta** del webhook a `MP_WEBHOOK_SECRET`.
-3. `docker compose up -d` para recargar el `.env`.
-4. Haz una compra de prueba completa antes de pasar a credenciales de producción.
-
-## 5. Copias de seguridad (obligatorio antes de entregar)
-```bash
-./scripts/backup.sh                                   # prueba manual
-crontab -e   →   0 3 * * * cd /opt/dip-house && ./scripts/backup.sh >> backups/backup.log 2>&1
-```
-Guarda la base de datos, el catálogo y las **evidencias de los clientes** en `backups/` (conserva 14 días). **Copia esa carpeta fuera del servidor** (otro servidor, S3/Backblaze, Google Drive con rclone). Un backup en el mismo disco no sirve si el disco falla.
-Restaurar: detén la app, copia el `.db` a `/data/app.db` dentro del volumen y vuelve a levantar.
-
-## 6. Actualizar a una versión nueva
-```bash
-cd /opt/dip-house && git pull && docker compose up -d --build
-```
-Antes de actualizar, ejecuta `./scripts/backup.sh`.
-
-## Cambios en la base de datos (para desarrollo)
-1. Edita `apps/web/src/db/schema.ts`.
-2. `npm run db:generate` crea un archivo en `apps/web/drizzle/`. Súbelo a git.
-3. Al desplegar, la app lo aplica sola.
-
-## Costos aproximados (consultados en nov. 2026; verifica en cada sitio, cambian seguido)
+## Costos aproximados (consultados nov. 2026; verifica en cada sitio, cambian seguido)
 | Pieza | Costo |
 |---|---|
-| Servidor Hetzner 2 vCPU / 4 GB / 80 GB (CPX22, Alemania o Finlandia) | ≈ 20 €/mes sin IVA |
-| Alternativa en EE. UU. (Ashburn) 3 vCPU / 4 GB / 80 GB (CPX21) | ≈ 32,5 €/mes |
-| Backups automáticos del servidor | desde 1,20 €/mes (depende del tamaño del servidor) |
-| Storage Box de 1 TB para copias externas | 3,20 €/mes sin IVA |
-| Volumen extra de disco | ≈ 0,05 €/GB/mes |
-| Correo SMTP (Brevo, plan gratis: 300 correos/día) | 0 € |
-| Certificado HTTPS (Let's Encrypt, automático con Caddy) | 0 € |
+| Servidor Hetzner de 2 GB RAM (línea CPX12) | ≈ 12 €/mes sin IVA |
+| Servidor más holgado, 4 GB (CPX22, Alemania/Finlandia) | ≈ 20 €/mes |
+| Backups automáticos del servidor | desde 1,20 €/mes (según tamaño) |
+| Storage Box 1 TB (copias externas) | 3,20 €/mes sin IVA |
+| Volumen extra de disco (evidencias) | ≈ 0,05 €/GB/mes |
+| Correo SMTP (Brevo gratis: 300/día) | 0 € |
+| HTTPS (Let's Encrypt, automático) · GitHub (repo + compilación) | 0 € |
 | Dominio | unos pocos dólares al mes prorrateados |
-| Mercado Pago | comisión por pago exitoso (consulta tu tarifa en tu cuenta) |
+| Mercado Pago | comisión por pago exitoso (confirma tu tarifa) |
+
+## 1. Preparar cuentas
+GitHub (repositorio **privado**), Hetzner Cloud, dominio, SMTP (Brevo/SES/Resend…), Mercado Pago como vendedor.
+
+## 2. Publicar la imagen
+1. Sube el proyecto a GitHub (`git push`). El flujo `.github/workflows/release.yml` compila y publica `ghcr.io/TU_USUARIO/dip-house:latest` (pestaña *Actions*; la primera vez tarda unos minutos).
+2. En GitHub → *Settings → Developer settings → Personal access tokens (classic)* crea uno con permiso **read:packages** (para que el servidor pueda descargar la imagen privada).
+
+## 3. Crear el servidor en Hetzner
+1. `ssh-keygen -t ed25519` en tu computador; copia la pública.
+2. Hetzner Cloud → *Add Server*: Ubuntu 24.04 · **2 GB de RAM o más** · ubicación (para Colombia, Ashburn da menos latencia que Europa, si el plan está disponible) · tu SSH key · **Backups** activados.
+3. **Firewall de Hetzner:** entrada solo 22 (idealmente tu IP), 80 y 443.
+4. **DNS:** registro **A** `lavados.tudominio.com` → IP del servidor.
+5. `ssh root@IP`, clona el repo (con una *deploy key* de solo lectura en GitHub) y ejecuta `bash scripts/server-setup.sh` (Docker, firewall, fail2ban, actualizaciones automáticas, swap).
+6. Inicia sesión en el registro de imágenes: `echo TU_TOKEN | docker login ghcr.io -u TU_USUARIO --password-stdin`.
+> Hetzner **bloquea el correo saliente por los puertos 25 y 465**; usa un SMTP por el **587**. Docker publica puertos por encima de `ufw`: `docker-compose.yml` solo publica 80 y 443; no agregues `ports:` a `app`.
+
+## 4. Configurar
+```bash
+cp .env.production.example .env && nano .env
+```
+- `DATA_KEY`: `openssl rand -base64 48`. **Guárdala aparte**: sin ella no se pueden leer los secretos de 2FA.
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` (12+ caracteres): crean el primer administrador solo la primera vez.
+- Datos del negocio (`BUSINESS_*`) para la política de privacidad; SMTP; `APP_IMAGE`.
+- Ejecuta `./scripts/preflight.sh`: revisa memoria, disco, DNS, correo y configuración. Corrige todo lo que marque ✘.
+
+## 5. Levantar
+```bash
+docker compose pull app && docker compose up -d
+docker compose logs -f app        # debe decir: [dip-house] base lista
+```
+La app aplica sola las migraciones (nunca borran datos). Abre `https://TU_DOMINIO` y `/api/health`.
+**Primer ingreso del administrador:** `/admin/ingresar` → te llevará a `/admin/seguridad` para activar la verificación en dos pasos (app autenticadora) y guardar los 8 códigos de respaldo. Después invita a los empleados desde *Personal*; ellos también deberán activarla.
+
+## 6. Mercado Pago
+1. Access Token → `MP_ACCESS_TOKEN`. Webhook: `https://TU_DOMINIO/api/v1/payments/webhook` (evento *Pagos*); su clave secreta → `MP_WEBHOOK_SECRET`. `docker compose up -d`.
+2. Prueba una compra completa con credenciales de **prueba** antes de pasar a producción.
+
+## 7. Copias de seguridad (obligatorio antes de entregar)
+```bash
+./scripts/backup.sh               # base (consistente), catálogo y evidencias → backups/
+crontab -e   →   0 3 * * * cd /opt/dip-house && ./scripts/backup.sh >> backups/backup.log 2>&1
+```
+Conserva 14 días. **Copia `backups/` fuera del servidor** (Storage Box de Hetzner por rsync/rclone). Restaurar: detén la app, copia el `.db` a `/data/app.db` dentro del volumen y vuelve a levantar. **Prueba la restauración una vez.**
+
+## 8. Actualizar
+Haz `git push`: GitHub compila la imagen nueva. En el servidor: `./scripts/deploy.sh` (copia → descarga → reinicia → verifica salud).
+**Volver atrás:** en `.env` pon `APP_IMAGE=ghcr.io/TU_USUARIO/dip-house:sha-XXXXXXX` (una versión anterior, visible en GitHub → Packages) y `docker compose up -d`.
 
 ## Ensayo antes de entregar (recomendado)
-Hetzner cobra por horas: crea un servidor temporal, haz todo el despliegue y las pruebas de abajo, y bórralo (cuesta centavos). Luego repites en el definitivo.
-1. `./scripts/preflight.sh` sin errores.  2. `docker compose up -d --build`.  3. Entrar a `/admin/ingresar`.
-4. Crear lavada y producto con foto y video.  5. Agendar desde un **celular real** subiendo evidencias (un video grande).
-6. Pagar con las credenciales de **prueba** de Mercado Pago (tarjeta, PSE) y ver que llegue el webhook.
-7. Confirmar la cita y asignar empleado; ver que llegue el correo (y el de recuperar contraseña).
-8. `./scripts/backup.sh`, **restaurar** esa copia en otro servidor y comprobar que todo aparece.
-9. Reiniciar el servidor y comprobar que todo vuelve solo.
+Hetzner cobra por horas: crea un servidor temporal, haz todo y bórralo (centavos).
+1. `preflight.sh` sin errores · 2. levantar · 3. entrar como admin y **activar 2FA** · 4. crear lavada y producto con foto y video · 5. agendar desde un **celular real** subiendo evidencias (un video grande) · 6. pagar con credenciales de prueba (tarjeta, PSE) y ver el webhook · 7. confirmar la cita, asignar empleado, ver que llegue el correo (y el de recuperar contraseña y el de verificación) · 8. hacer un pedido con el carrito · 9. revisar **Reportes**: que el dinero coincida; descargar Excel y PDF · 10. `backup.sh`, **restaurar** en otro servidor · 11. reiniciar el servidor y comprobar que todo vuelve solo.
 
-## Actualizar con seguridad
-`./scripts/deploy.sh` hace copia, `git pull`, recompila, levanta y verifica la salud.
+## Cambios en la base de datos (para desarrollo)
+Edita `apps/web/src/db/schema.ts` → `npm run db:generate` crea un archivo en `apps/web/drizzle/` (súbelo a git) → al desplegar se aplica solo.
 
-## Pendiente antes de entregar al cliente
-- Pedidos de productos: falta el carrito del cliente y la sección «Pedidos» del panel (el catálogo ya se administra).
-- Carrito de productos y pedidos.
-- Aviso inmediato al empleado cuando se le asigna un servicio del mismo día (hoy solo recibe el resumen de la mañana).
-- Verificación de correo del cliente y 2FA para el personal.
-- Monitoreo externo de `/api/health` (UptimeRobot, etc.).
-- Revisar términos, política de privacidad y tratamiento de datos personales (Colombia: Ley 1581).
+## Mantenimiento y vigilancia
+- Monitor externo gratuito (UptimeRobot, etc.) sobre `https://TU_DOMINIO/api/health`.
+- Cada mes: `df -h` (las evidencias crecen), revisar logs (`docker compose logs --tail=200 app`) y probar una restauración.
+- La **retención de evidencias** (Ajustes → días) borra solas las de citas cerradas; debe coincidir con tu política de privacidad.
 
-## Alternativa: Vercel + Turso
-Posible, pero requiere cambiar `DATABASE_URL` a Turso, activar Vercel Blob (`BLOB_READ_WRITE_TOKEN`) y el límite de subida es ~4.5 MB por archivo. Para el cliente final se recomienda el servidor propio descrito arriba.
+## Antes de entregar al cliente
+- **Textos legales:** completa `BUSINESS_*` y haz que un abogado revise la política de privacidad y los términos (Ley 1581 de 2012); son una plantilla.
+- Confirma tu tarifa de Mercado Pago y las condiciones de uso comercial de cada proveedor.
+- Entrega al cliente: acceso de administrador, la `DATA_KEY` guardada con seguridad, los códigos de respaldo del 2FA y esta guía.

@@ -7,6 +7,7 @@ import { fail } from '@/lib/http';
 import { checkOrigin } from './guard';
 import { fakeVerify, verifyPassword } from './password';
 import { allow, clientIp } from './ratelimit';
+import { createToken } from './tokens';
 import { Audience, createSession, setSessionCookie } from './session';
 
 const GENERIC = 'Correo o contraseña incorrectos';
@@ -37,6 +38,9 @@ export async function loginFlow(req: Request, aud: Audience) {
     return fail(GENERIC, 401); // misma respuesta para: no existe, rol equivocado, clave mala, bloqueada, inactiva
   }
   await db.update(users).set({ failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() }).where(eq(users.id, u.id));
+  if (aud === 'staff' && u.totpEnabledAt) { // contraseña correcta, falta el código de 2FA: aún NO hay sesión
+    return NextResponse.json({ mfa: true, mfaToken: await createToken(u.id, 'mfa', 5 * 60e3) });
+  }
   const token = await createSession(u.id, aud, req); // token nuevo en cada login
   const mobile = req.headers.get('x-client') === 'mobile';
   const res = NextResponse.json({ user: { id: u.id, name: u.name, email: u.email, role: u.role }, ...(mobile ? { token } : {}) });

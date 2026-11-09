@@ -22,11 +22,11 @@ export const POST = (req: Request) => handle(async () => {
   const evIds = [...new Set(input.evidenceIds)];
   const ev = await db.select({ id: evidence.id }).from(evidence).where(and(inArray(evidence.id, evIds), isNull(evidence.appointmentId)));
   if (ev.length !== evIds.length) return fail('Alguna evidencia no es válida o ya fue usada. Vuelve a subirla.');
-  const { washId, extraIds, evidenceIds, ...rest } = input;
+  const { washId, extraIds, evidenceIds, acceptPrivacy, ...rest } = input; void evidenceIds; void acceptPrivacy;
   const extras = JSON.stringify(chosen.map(x => ({ name: x.name, priceCop: x.priceCop, durationMin: x.durationMin })));
   const auth = await getAuth(req); // si es un cliente con sesión, la cita queda en su cuenta
   const userId = auth?.user.role === 'customer' ? auth.user.id : undefined;
-  const [a] = await db.insert(appointments).values({ ...rest, userId, washId, washName: w.name, extras, priceCop, durationMin, code: code() }).returning();
+  const [a] = await db.insert(appointments).values({ ...rest, userId, privacyAcceptedAt: new Date(), washId, washName: w.name, extras, priceCop, durationMin, code: code() }).returning();
   await db.update(evidence).set({ appointmentId: a.id }).where(inArray(evidence.id, evIds));
   return ok({ ...a, evidence: evIds.length }, 201);
 });

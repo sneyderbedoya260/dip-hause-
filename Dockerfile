@@ -6,16 +6,18 @@ COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 RUN npm ci
 
-# --- build ---
+# --- build (esto corre en GitHub Actions, no en tu servidor) ---
 FROM node:22-bookworm-slim AS build
+ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-# --- runtime ---
+# --- runtime (liviano: solo lo que la app necesita) ---
 FROM node:22-bookworm-slim AS run
-ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 DATABASE_URL=file:/data/app.db UPLOAD_DIR=/data/uploads
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS=--max-old-space-size=512 \
+    DATABASE_URL=file:/data/app.db UPLOAD_DIR=/data/uploads EVIDENCE_DIR=/data/evidence
 WORKDIR /app
 RUN useradd --uid 1001 --create-home app && mkdir -p /data/uploads /data/evidence /data/backups && chown -R app:app /data
 COPY --from=build --chown=app:app /app/apps/web/.next/standalone ./

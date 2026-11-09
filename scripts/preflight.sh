@@ -13,14 +13,16 @@ if command -v docker >/dev/null && docker compose version >/dev/null 2>&1; then 
 
 echo "2) Recursos del servidor"
 MEM=$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)
-[ "$MEM" -ge 3500 ] && ok "RAM ${MEM} MB" || bad "RAM ${MEM} MB: con menos de 4 GB la compilación puede fallar"
+[ "$MEM" -ge 1700 ] && ok "RAM ${MEM} MB" || bad "RAM ${MEM} MB: se recomiendan al menos 2 GB"
 FREE=$(df -BG --output=avail / | tail -1 | tr -dc 0-9)
 [ "$FREE" -ge 10 ] && ok "disco libre ${FREE} GB" || bad "poco disco libre (${FREE} GB)"
 
 echo "3) Configuración (.env)"
-for v in DOMAIN APP_URL ADMIN_EMAIL ADMIN_PASSWORD; do [ -n "${!v:-}" ] && ok "$v definido" || bad "$v está vacío"; done
+for v in APP_IMAGE DOMAIN APP_URL ADMIN_EMAIL ADMIN_PASSWORD DATA_KEY; do [ -n "${!v:-}" ] && ok "$v definido" || bad "$v está vacío"; done
 case "${APP_URL:-}" in https://*) ok "APP_URL usa https";; *) bad "APP_URL debe empezar con https://";; esac
 [ "${#ADMIN_PASSWORD}" -ge 12 ] && ok "ADMIN_PASSWORD de 12+ caracteres" || bad "ADMIN_PASSWORD demasiado corta (mínimo 12)"
+[ "${#DATA_KEY}" -ge 32 ] && ok "DATA_KEY de 32+ caracteres" || bad "DATA_KEY demasiado corta (mínimo 32)"
+[ "${REQUIRE_2FA:-}" = "true" ] && ok "REQUIRE_2FA=true" || bad "REQUIRE_2FA debe ser true (2FA obligatorio para el personal)"
 if [ -n "${SMTP_HOST:-}" ]; then ok "SMTP_HOST definido"; else bad "SMTP_HOST vacío: no saldrán correos de recuperación ni recordatorios"; fi
 [ "${SMTP_PORT:-587}" = "587" ] && ok "SMTP_PORT=587" || bad "Hetzner bloquea los puertos 25 y 465: usa 587"
 if [ -n "${MP_ACCESS_TOKEN:-}" ]; then

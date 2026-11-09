@@ -1,5 +1,5 @@
 {$DOMAIN} {
-	encode gzip
+	encode zstd gzip
 	request_body {
 		max_size 200MB      # tope de subida de fotos y videos
 	}

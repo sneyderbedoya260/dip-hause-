@@ -1,12 +1,13 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, or } from 'drizzle-orm';
 import { db } from '@/db';
 import { appointments } from '@/db/schema';
 import { requireRole } from '@/lib/auth/guard';
 import { handle, ok } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
-// Solo por userId (no por correo): sin verificación de correo, coincidir por email permitiría ver citas ajenas.
+// Por cuenta; y por correo SOLO si el correo está verificado (si no, alguien podría registrar un correo ajeno).
 export const GET = (req: Request) => handle(async () => {
   const a = await requireRole(req, ['customer']);
-  return ok(await db.select().from(appointments).where(eq(appointments.userId, a.user.id)).orderBy(desc(appointments.date), desc(appointments.time)));
+  const where = a.user.emailVerified ? or(eq(appointments.userId, a.user.id), eq(appointments.email, a.user.email)) : eq(appointments.userId, a.user.id);
+  return ok(await db.select().from(appointments).where(where).orderBy(desc(appointments.date), desc(appointments.time)));
 });

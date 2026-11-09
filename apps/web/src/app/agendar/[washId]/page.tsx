@@ -17,6 +17,7 @@ export default function Agendar() {
   const [picked, setPicked] = useState<string[]>([]);
   const [date, setDate] = useState(''); const [time, setTime] = useState('');
   const [f, setF] = useState(empty); const [method, setMethod] = useState<'mercadopago' | 'cash'>('mercadopago');
+  const [accept, setAccept] = useState(false);
   const [ev, setEv] = useState<Ev[]>([]); const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [done, setDone] = useState<string | null>(null);
 
@@ -48,11 +49,12 @@ export default function Agendar() {
   }
   async function submit() {
     setErr('');
+    if (!accept) return setErr('Debes aceptar la política de privacidad.');
     if (ev.length === 0) return setErr('Debes adjuntar al menos una foto o video del estado del vehículo para agendar.');
     if (!date || !time) return setErr('Elige un día y una hora disponibles.');
     setBusy(true);
     try {
-      const r = await fetch('/api/v1/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ washId, date, time, paymentMethod: method, extraIds: picked, evidenceIds: ev.map(x => x.id), ...f }) });
+      const r = await fetch('/api/v1/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ washId, date, time, paymentMethod: method, extraIds: picked, evidenceIds: ev.map(x => x.id), acceptPrivacy: true, ...f }) });
       const a = await r.json();
       if (!r.ok) throw new Error(a.error);
       if (method === 'mercadopago') {
@@ -95,6 +97,7 @@ export default function Agendar() {
         <select value={method} onChange={e => setMethod(e.target.value as 'mercadopago' | 'cash')}>
           <option value="mercadopago">Pagar en línea con Mercado Pago</option><option value="cash">Pagar al finalizar el servicio</option>
         </select></label>
+      <label className="f" style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontWeight: 400 }}><input type="checkbox" checked={accept} onChange={e => setAccept(e.target.checked)} style={{ width: 20, minHeight: 20, marginTop: 3 }} /><span>He leído y acepto la <a href="/privacidad" target="_blank" rel="noopener" style={{ color: 'var(--blue)' }}>política de privacidad</a> y los <a href="/terminos" target="_blank" rel="noopener" style={{ color: 'var(--blue)' }}>términos</a>, incluido el uso de las evidencias del vehículo.</span></label>
       {err && <p className="err" role="alert">{err}</p>}
       <p className="note">El administrador debe confirmar tu cita. Tu horario queda reservado mientras tanto.</p>
       <button className={`btn${busy ? ' loading' : ''}`} disabled={uploading} style={{ width: '100%', marginTop: 12 }} onClick={submit}>{method === 'mercadopago' ? `Pagar ${formatCop(total)}` : 'Enviar solicitud'}</button>

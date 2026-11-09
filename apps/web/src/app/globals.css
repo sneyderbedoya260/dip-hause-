@@ -123,3 +123,14 @@ label.drop:focus-within{outline:3px solid var(--blue)}
 .seg7 .pill{padding:10px 0;text-align:center}
 .mi{position:relative;display:block;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--s2)}
 label.drop.loading{opacity:.6;pointer-events:none}
+.cnt{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--red);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 5px}
+.tag.nuevo{background:#3a2a00;color:#FFB84D}.tag.listo{background:#3a2f00;color:var(--blue)}.tag.entregado{background:#0e2e20;color:#4ADE9A}.tag.cancelado{background:#3a1012;color:#FF7A82}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:760px){.kpis{grid-template-columns:repeat(3,1fr)}}
+.kpi{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--s1);display:flex;flex-direction:column;gap:2px}
+.kpi b{font-size:22px;letter-spacing:-.02em;color:var(--blue2)}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;min-width:420px}
+.tbl th{text-align:left;color:var(--mut);font-weight:600;padding:10px 12px;background:var(--s2)}
+.tbl td{padding:9px 12px;border-top:1px solid var(--line)}
+.tbl tr.click{cursor:pointer}.tbl tr.click:hover,.tbl tr.click:focus{background:var(--s2);outline:none}

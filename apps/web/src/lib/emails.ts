@@ -31,3 +31,9 @@ export function staffDigest(name: string, date: string, list: Appt[], title = 'T
   const html = shell(title, `<p>Hola ${esc(name)}, esto es lo de ${esc(fmtDate(date))}:</p>` + sorted.map(a => `<div style="border-top:1px solid #2a2a2a;padding:12px 0"><div style="font-size:20px;color:#ffc31f;font-weight:800">${a.time}</div><div><b>${esc(a.washName)}</b>${extrasOf(a) ? ' + ' + esc(extrasOf(a)) : ''}</div><div style="color:#a3a3a3;font-size:14px">${esc(a.customerName)} · <a href="tel:${esc(a.phone)}" style="color:#ffc31f">${esc(a.phone)}</a><br>${esc(a.vehicle)} · ${esc(a.plate)}<br><a href="${esc(maps(a.address))}" style="color:#ffc31f">${esc(a.address)}</a>${a.refs ? ' (' + esc(a.refs) + ')' : ''}${a.notes ? '<br>Notas: ' + esc(a.notes) : ''}</div></div>`).join(''));
   return { subject: `${title}: ${sorted.length} servicio${sorted.length > 1 ? 's' : ''} el ${fmtDate(date)}`, text, html };
 }
+
+export function verifyEmail(name: string, link: string) {
+  return { subject: 'Dip House · Confirma tu correo',
+    text: `Hola ${name},\n\nConfirma tu correo para proteger tu cuenta y ver tus citas y pedidos:\n${link}\n\nEl enlace vale 24 horas. Si no creaste la cuenta, ignora este correo.`,
+    html: shell('Confirma tu correo', `<p>Hola ${esc(name)},</p><p>Confirma tu correo para proteger tu cuenta y ver tus citas y pedidos.</p>${btn(link, 'Confirmar correo')}<p style="color:#a3a3a3;font-size:13px">El enlace vale 24 horas. Si no creaste la cuenta, ignora este correo.</p>`) };
+}

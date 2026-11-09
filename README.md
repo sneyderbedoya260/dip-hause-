@@ -18,10 +18,21 @@ npm run dev                             # http://localhost:3000  ·  admin de de
 ```
 Producción: ver [DEPLOY.md](DEPLOY.md) (Docker + HTTPS, migraciones automáticas, backups).
 
+## Qué incluye
+- **Cliente:** catálogo de lavadas (con servicios adicionales) y productos, **calendario de disponibilidad**, **evidencias obligatorias del vehículo** al agendar, pago con Mercado Pago o al finalizar, **carrito y pedidos**, cuenta con verificación de correo, recuperar contraseña.
+- **Administrador:** **dashboard de reportes** (día / semana / mes / año / rango; dinero que entró, pedidos, citas, por método/servicio/producto; clic en cada fecha; descarga en **Excel** y **PDF con gráficos**), citas con asignación de empleado y registro de cobros, calendario con direcciones, pedidos, gestión de lavadas y productos (fotos y videos de cualquier formato), personal, ajustes (horario y retención) y seguridad (2FA).
+- **Empleado:** solo ve y completa sus servicios asignados.
+- **Automático:** recordatorios por correo a empleados y clientes, limpieza de evidencias, migraciones de base de datos al arrancar.
+
+Arquitectura, lenguajes y estructura: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) · Despliegue en Hetzner: [DEPLOY.md](DEPLOY.md).
+
 ## Panel de administración (`/admin`)
 | Sección | Quién | Qué hace |
 |---|---|---|
-| **Citas** | admin | Por confirmar / confirmadas / completadas / canceladas; confirmar, rechazar, completar y **asignar empleado** |
+| **Reportes** | admin | Dashboard por día/semana/mes/año/rango, detalle por fecha, descarga Excel y PDF |
+| **Pedidos** | admin | Pedidos de productos: estados, registro de pago recibido |
+| **Seguridad** | todos | Verificación en dos pasos (obligatoria) y cambio de contraseña |
+| **Citas** | admin | Por confirmar / confirmadas / completadas / canceladas; confirmar, rechazar, completar, **asignar empleado** y **registrar pago recibido**; ver evidencias |
 | **Calendario** | admin | Mes completo con conteo de citas confirmadas y por confirmar por día; al elegir un día: servicio, adicionales, cliente, **dirección con enlace a Maps**, teléfono |
 | **Lavadas** | admin | Crear, editar, activar/desactivar; precio, duración, descripción, **fotos y videos de cualquier formato** y **servicios adicionales** |
 | **Productos** | admin | Crear, editar, activar/desactivar; foto, **video opcional**, precio, descripción |
@@ -46,7 +57,8 @@ Para agendar, el cliente **debe** adjuntar al menos una foto o video del estado 
 - Contraseñas con scrypt; sesiones en base de datos (token aleatorio, solo se guarda su hash) y revocables; bloqueo progresivo tras 5 fallos; límite de intentos por IP y por correo; defensa CSRF por origen; respuestas idénticas exista o no el correo.
 - El personal se crea desde el panel (invitación por correo con enlace de 48 h); no hay registro público de empleados.
 - Recuperar contraseña: enlace de un solo uso (30 min) por correo; al usarlo se cierran todas las sesiones.
-- Reservado para después: 2FA (TOTP) del personal (`users.totp_secret`), verificación de correo del cliente.
+- **2FA (TOTP)** obligatorio para el personal con `REQUIRE_2FA=true` (app autenticadora + 8 códigos de respaldo de un solo uso; el código no se puede reutilizar; el secreto se guarda cifrado con `DATA_KEY`).
+- **Verificación de correo** del cliente: hasta confirmarlo, solo ve lo hecho con su sesión (no lo que alguien haya agendado como invitado con ese correo).
 
 ## Notificaciones (correo)
 Un programador interno revisa cada minuto (con `NOTIFY_ENABLED=true`) y envía, una sola vez cada uno:
@@ -77,12 +89,9 @@ Móvil: enviar `X-Client: mobile` en el login para recibir el `token` en la resp
 La app usará el mismo backend: login admin con `Authorization: Bearer`, `init_point` de Mercado Pago abierto en el navegador del sistema, y `@dip/shared` para validar formularios.
 Los archivos subidos se guardan en `UPLOAD_DIR` y se sirven por `/uploads/*` con soporte de video en iPhone.
 
-## Estado
-Hecho: API completa, catálogo, agendamiento con disponibilidad, Mercado Pago (preferencia + webhook), splash y skeletons de carga.
-Pendiente: panel admin (UI), calendario mensual, carrito de productos y pedidos, app móvil, firma del webhook de Mercado Pago, notificaciones.
 
-## Subir a GitHub
-```bash
-git remote add origin git@github.com:TU_USUARIO/dip-house.git
-git push -u origin main
-```
+## Pendiente
+- App móvil (Expo / React Native) sobre la misma API.
+- Probar Docker + HTTPS en un servidor real (ensayo descrito en DEPLOY.md).
+- Revisión legal de la política de privacidad y términos (son una plantilla).
+- Aviso inmediato al empleado cuando se le asigna un servicio del mismo día (hoy recibe el resumen de la mañana).

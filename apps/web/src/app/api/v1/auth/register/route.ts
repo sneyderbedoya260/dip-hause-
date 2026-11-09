@@ -8,6 +8,9 @@ import { hashPassword, passwordProblem } from '@/lib/auth/password';
 import { allow, clientIp } from '@/lib/auth/ratelimit';
 import { createSession, setSessionCookie } from '@/lib/auth/session';
 import { fail, handle } from '@/lib/http';
+import { sendMail } from '@/lib/mailer';
+import { verifyEmail } from '@/lib/emails';
+import { createToken } from '@/lib/auth/tokens';
 
 /** Registro de CLIENTES. El personal solo se crea desde el panel del administrador. */
 export const POST = (req: Request) => handle(async () => {
@@ -17,7 +20,9 @@ export const POST = (req: Request) => handle(async () => {
   const problem = passwordProblem(d.password, d.email);
   if (problem) return fail(problem);
   if ((await db.select({ id: users.id }).from(users).where(eq(users.email, d.email))).length) return fail('Ya existe una cuenta con ese correo. Prueba iniciar sesión.', 409);
-  const [u] = await db.insert(users).values({ email: d.email, name: d.name, phone: d.phone, role: 'customer', passwordHash: await hashPassword(d.password) }).returning();
+  const [u] = await db.insert(users).values({ email: d.email, name: d.name, phone: d.phone, role: 'customer', passwordHash: await hashPassword(d.password), privacyAcceptedAt: new Date() }).returning();
+  const vt = await createToken(u.id, 'verify', 24 * 3600e3);
+  void sendMail({ to: u.email, ...verifyEmail(u.name, `${process.env.APP_URL ?? 'http://localhost:3000'}/verificar?token=${vt}`) }).catch(e => console.error('[correo] verificación', e));
   const token = await createSession(u.id, 'customer', req);
   const mobile = req.headers.get('x-client') === 'mobile';
   const res = NextResponse.json({ user: { id: u.id, name: u.name, email: u.email, role: u.role }, ...(mobile ? { token } : {}) }, { status: 201 });

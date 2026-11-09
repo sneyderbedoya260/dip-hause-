@@ -1,16 +1,31 @@
+# Servidor Hetzner: la imagen ya viene compilada desde GitHub (no se compila aquí).
+# En .env define APP_IMAGE=ghcr.io/TU_USUARIO/dip-house:latest
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }   # los logs no llenan el disco
+
 services:
   app:
-    build: .
+    image: ${APP_IMAGE:-dip-house:local}
+    build: .                                    # solo para probar en tu computador: docker compose build
     restart: unless-stopped
     env_file: .env
+    environment:
+      NODE_OPTIONS: --max-old-space-size=512
+    mem_limit: 768m                             # tope de memoria: nunca acapara el servidor
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
     volumes:
-      - appdata:/data          # base de datos SQLite, archivos subidos y copias
+      - appdata:/data                           # base SQLite, catálogo, evidencias y copias
     expose: ["3000"]
 
-  caddy:                       # HTTPS automático (Let's Encrypt) + proxy
-    image: caddy:2
+  caddy:                                        # HTTPS automático (Let's Encrypt) + compresión
+    image: caddy:2-alpine
     restart: unless-stopped
     depends_on: [app]
+    mem_limit: 128m
+    logging: *logging
     ports: ["80:80", "443:443"]
     environment:
       DOMAIN: ${DOMAIN}

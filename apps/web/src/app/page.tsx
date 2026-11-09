@@ -1,4 +1,5 @@
 import { formatCop, formatDuration } from '@dip/shared';
+import AddToCart from '@/components/cart/AddToCart';
 import Media from '@/components/Media';
 import { listProducts, listWashes } from '@/lib/catalog';
 
@@ -43,6 +44,7 @@ export default async function Home() {
               <h3>{p.name}</h3>
               <span className="price">{formatCop(p.priceCop)}</span>
               <p className="clamp">{p.description}</p>
+              <AddToCart id={p.id} name={p.name} priceCop={p.priceCop} />
             </div>
           </article>
         ))}

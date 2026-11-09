@@ -7,7 +7,7 @@ import { clientIp } from './ratelimit';
 
 export type Audience = 'staff' | 'customer';
 export type Role = 'admin' | 'employee' | 'customer';
-export type AuthUser = { id: string; email: string; name: string; phone: string; role: Role };
+export type AuthUser = { id: string; email: string; name: string; phone: string; role: Role; emailVerified: boolean; totpEnabled: boolean };
 
 const prod = process.env.NODE_ENV === 'production';
 // Personal: sesión corta (4 h sin actividad, 12 h máx). Clientes: 14 días / 90 días.
@@ -39,7 +39,7 @@ export async function resolveSession(token: string, aud?: Audience): Promise<{ u
   if ((s.audience === 'staff') === (u.role === 'customer')) return null; // el rol debe coincidir con el tipo de sesión
   if (now - s.lastSeenAt.getTime() > 5 * 60e3)
     await db.update(sessions).set({ lastSeenAt: new Date(now), expiresAt: new Date(Math.min(now + CFG[s.audience].idle, s.absoluteExpiresAt.getTime())) }).where(eq(sessions.id, s.id));
-  return { user: { id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role }, audience: s.audience };
+  return { user: { id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role, emailVerified: !!u.emailVerifiedAt, totpEnabled: !!u.totpEnabledAt }, audience: s.audience };
 }
 export const revokeSession = (token: string) => db.delete(sessions).where(eq(sessions.id, hashToken(token)));
 /** Cierra todas las sesiones de un usuario (cambio de clave, desactivación). `except` conserva la actual. */

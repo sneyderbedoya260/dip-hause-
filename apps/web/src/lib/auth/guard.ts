@@ -28,10 +28,12 @@ export async function getAuth(req: Request): Promise<Auth | null> {
   }
   return null;
 }
-export async function requireRole(req: Request, roles: Role[]) {
+export const REQUIRE_2FA = () => process.env.REQUIRE_2FA === 'true';
+export async function requireRole(req: Request, roles: Role[], opts: { allowNoMfa?: boolean } = {}) {
   const a = await getAuth(req);
   if (!a) throw fail('No autorizado', 401);
   if (!roles.includes(a.user.role)) throw fail('Sin permiso', 403);
+  if (a.audience === 'staff' && REQUIRE_2FA() && !a.user.totpEnabled && !opts.allowNoMfa) throw Response.json({ error: 'Debes activar la verificación en dos pasos para usar el panel', code: 'MFA_SETUP_REQUIRED' }, { status: 403 });
   if (a.via === 'cookie') checkOrigin(req);
   return a;
 }
